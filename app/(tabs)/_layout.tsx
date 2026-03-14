@@ -1,36 +1,69 @@
-import { Tabs } from 'expo-router';
+import { Tabs } from "expo-router";
+import { Image } from "react-native";
+
+const iconSize = { width: 24, height: 24 };
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+      }}
+    >
       <Tabs.Screen
-        name="calendar"
+        name="diary"
         options={{
-          title: '캘린더',
+          tabBarIcon: () => (
+            <Image
+              source={require("../../assets/icons/diary.png")}
+              style={iconSize}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: '채팅',
+          tabBarIcon: () => (
+            <Image
+              source={require("../../assets/icons/chat.png")}
+              style={iconSize}
+            />
+          ),
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
-          title: '홈',
+          tabBarIcon: () => (
+            <Image
+              source={require("../../assets/icons/home.png")}
+              style={iconSize}
+            />
+          ),
         }}
       />
       <Tabs.Screen
-        name="location"
+        name="hospital"
         options={{
-          title: '위치',
+          tabBarIcon: () => (
+            <Image
+              source={require("../../assets/icons/hospital.png")}
+              style={iconSize}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: '설정',
+          tabBarIcon: () => (
+            <Image
+              source={require("../../assets/icons/settings.png")}
+              style={iconSize}
+            />
+          ),
         }}
       />
     </Tabs>

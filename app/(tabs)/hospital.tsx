@@ -1,9 +1,9 @@
 import { Text, View } from "react-native";
 
-export default function LocationScreen() {
+export default function HospitalScreen() {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>Location Screen</Text>
+      <Text>Hospital Screen</Text>
     </View>
   );
 }
