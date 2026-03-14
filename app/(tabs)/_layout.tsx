@@ -34,11 +34,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
           tabBarIcon: () => (
             <Image
-              source={require("../../assets/icons/home.png")}
+              source={require("../../assets/icons/index.png")}
               style={iconSize}
             />
           ),
