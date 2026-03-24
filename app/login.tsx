@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 const socialLoginProviders = [
@@ -8,9 +9,13 @@ const socialLoginProviders = [
 ];
 
 export default function LoginScreen() {
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+
+  const isLoginEnabled = userId.trim() !== "" && password.trim() !== "";
+
   return (
     <View style={styles.container}>
-      {/* Logo */}
       <View style={styles.header}>
         <Image
           source={require("../assets/icons/logo.png")}
@@ -18,27 +23,37 @@ export default function LoginScreen() {
         />
       </View>
 
-      {/* Form */}
       <View style={styles.form}>
         <TextInput
           placeholder="아이디"
           placeholderTextColor="#BDBDBD"
           style={styles.input}
+          value={userId}
+          onChangeText={setUserId}
         />
         <TextInput
           placeholder="비밀번호"
           placeholderTextColor="#BDBDBD"
           secureTextEntry
           style={styles.input}
+          value={password}
+          onChangeText={setPassword}
         />
       </View>
 
-      {/* Login Button */}
-      <Pressable style={styles.loginButton} onPress={() => console.log("login")}>
+      <Pressable 
+        style={[
+          styles.loginButton,
+          isLoginEnabled && styles.loginButtonActive,
+        ]} 
+        onPress={() => {
+          if (!isLoginEnabled) return;
+          router.push("./login-success");
+        }}
+      >
         <Text style={styles.loginText}>로그인</Text>
       </Pressable>
 
-      {/* Social Login */}
       <View style={styles.social}>
         <View style={styles.socialIcons}>
           {socialLoginProviders.map((provider) => (
@@ -55,7 +70,6 @@ export default function LoginScreen() {
         </View>
       </View>
 
-      {/* Signup Link */}
       <View style={styles.signupRow}>
         <Text style={styles.signupText}>계정이 없으신가요?</Text>
         <Pressable onPress={() => router.push("./signup")}>
@@ -87,7 +101,7 @@ const styles = StyleSheet.create({
   },
 
   form: {
-    gap: 12,
+    gap: 16,
     marginBottom: 20,
   },
 
@@ -114,6 +128,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 45,
   },
+  loginButtonActive: {
+    backgroundColor: "#5e5e5e",
+  },
   loginText: {
     color: "#fff",
     fontWeight: "bold",
@@ -135,7 +152,7 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 5,
+    borderRadius: 1,
     backgroundColor: "#FFFFFF",
     borderWidth: 0.3,
     borderColor: "#e8e8e838",
