@@ -1,13 +1,11 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import SuccessLogo from "../assets/icons/success-logo.svg";
 
 export default function LoginSuccessScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Image
-          source={require("../assets/icons/success-logo.png")}
-          style={styles.image}
-        />
+        <SuccessLogo width={96} height={96} style={styles.logo} />
 
         <Text style={styles.text}>로그인 성공!</Text>
       </View>
@@ -39,5 +37,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     color: "#4A4A4A",
+  },
+  
+  logo: {
+    marginBottom: 20,
   },
 });

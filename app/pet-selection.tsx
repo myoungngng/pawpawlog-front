@@ -1,10 +1,9 @@
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
-  FlatList,
   Image,
-  ImageStyle,
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -13,6 +12,8 @@ import {
   Text,
   View,
 } from "react-native";
+import CancelButtonIcon from "../assets/icons/cancel-button.svg";
+import ConfirmButtonIcon from "../assets/icons/confirm-button.svg";
 
 type Pet = {
   id: number;
@@ -27,7 +28,7 @@ const petOptions: Pet[] = [
   {
     id: 1,
     name: "토끼",
-    image: require("../assets/icons/rabbit.jpg"),
+    image: require("../assets/icons/rabbit.png"),
     offsetX: 0,
     offsetY: 0,
     scale: 1,
@@ -35,7 +36,7 @@ const petOptions: Pet[] = [
   {
     id: 2,
     name: "햄스터",
-    image: require("../assets/icons/hamster.jpg"),
+    image: require("../assets/icons/hamster.png"),
     offsetX: 0,
     offsetY: 2,
     scale: 1,
@@ -43,7 +44,7 @@ const petOptions: Pet[] = [
   {
     id: 3,
     name: "앵무새",
-    image: require("../assets/icons/parrot.jpg"),
+    image: require("../assets/icons/parrot.png"),
     offsetX: 0,
     offsetY: 1,
     scale: 1,
@@ -60,11 +61,26 @@ const ITEM_HEIGHT = FRAME_HEIGHT;
 const ITEM_GAP = 8;
 const SNAP_SIZE = ITEM_WIDTH + ITEM_GAP;
 const HORIZONTAL_SCREEN_PADDING = 24;
+const SHADOW_PADDING = 18;
+
+const LOOP_MULTIPLIER = 200;
 
 export default function PetSelectionScreen() {
-  const flatListRef = useRef<FlatList<Pet>>(null);
+  const flatListRef = useRef<Animated.FlatList<Pet>>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
-  const [selectedIndex, setSelectedIndex] = useState(1);
+  const loopedPetOptions = useMemo(
+    () => Array.from({ length: LOOP_MULTIPLIER }, () => petOptions).flat(),
+    []
+  );
+
+  const middleBaseIndex =
+    Math.floor(loopedPetOptions.length / 2 / petOptions.length) *
+    petOptions.length;
+
+  const initialIndex = middleBaseIndex + 1;
+
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
   const [confirmedPet, setConfirmedPet] = useState<Pet | null>(null);
   const [lastTapTime, setLastTapTime] = useState(0);
   const [listWidth, setListWidth] = useState(
@@ -73,13 +89,43 @@ export default function PetSelectionScreen() {
 
   const sidePadding = Math.max((listWidth - ITEM_WIDTH) / 2, 0);
 
+  const getRealPetIndex = (index: number) => {
+    const mod = index % petOptions.length;
+    return mod < 0 ? mod + petOptions.length : mod;
+  };
+
+  const getRealPet = (index: number) => petOptions[getRealPetIndex(index)];
+
+  const resetToMiddleIfNeeded = (index: number) => {
+    const edgeBuffer = petOptions.length * 6;
+
+    if (index > edgeBuffer && index < loopedPetOptions.length - edgeBuffer) {
+      return;
+    }
+
+    const realIndex = getRealPetIndex(index);
+    const targetIndex = middleBaseIndex + realIndex;
+
+    flatListRef.current?.scrollToOffset({
+      offset: targetIndex * SNAP_SIZE,
+      animated: false,
+    });
+
+    setSelectedIndex(targetIndex);
+  };
+
   const handleMomentumEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>
   ) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const newIndex = Math.round(offsetX / SNAP_SIZE);
+
     setSelectedIndex(newIndex);
     setConfirmedPet(null);
+
+    requestAnimationFrame(() => {
+      resetToMiddleIfNeeded(newIndex);
+    });
   };
 
   const handlePetPress = (index: number) => {
@@ -92,9 +138,10 @@ export default function PetSelectionScreen() {
     }
 
     const now = Date.now();
+    const selectedPet = getRealPet(index);
 
     if (now - lastTapTime < 300) {
-      setConfirmedPet(petOptions[index]);
+      setConfirmedPet(selectedPet);
     }
 
     setLastTapTime(now);
@@ -113,6 +160,15 @@ export default function PetSelectionScreen() {
     setListWidth(event.nativeEvent.layout.width);
   };
 
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToOffset({
+        offset: initialIndex * SNAP_SIZE,
+        animated: false,
+      });
+    });
+  }, [initialIndex]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -123,77 +179,97 @@ export default function PetSelectionScreen() {
       </View>
 
       <View style={styles.selectorSection}>
-        <View
-          pointerEvents="none"
-          style={[
-            styles.centerFrame,
-            confirmedPet && styles.centerFrameConfirmed,
-          ]}
-        />
-
         <View style={styles.listFullWidth} onLayout={handleListLayout}>
-          <FlatList
+          <View pointerEvents="none" style={styles.centerFrameShadow} />
+
+          <Animated.FlatList
             ref={flatListRef}
-            data={petOptions}
-            keyExtractor={(item) => item.id.toString()}
+            style={styles.petList}
+            data={loopedPetOptions}
+            keyExtractor={(_, index) => `pet-${index}`}
             horizontal
             showsHorizontalScrollIndicator={false}
             bounces={false}
             snapToInterval={SNAP_SIZE}
             snapToAlignment="start"
-            disableIntervalMomentum={true}
             decelerationRate="fast"
+            scrollEventThrottle={16}
             contentContainerStyle={[
               styles.petListContent,
               { paddingHorizontal: sidePadding },
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             onMomentumScrollEnd={handleMomentumEnd}
-            initialScrollIndex={1}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: true }
+            )}
+            initialScrollIndex={initialIndex}
             getItemLayout={(_, index) => ({
               length: SNAP_SIZE,
               offset: SNAP_SIZE * index,
               index,
             })}
-            renderItem={({ item, index }) => {
-              const isSelected = index === selectedIndex;
+            renderItem={({ index }) => {
+              const realPet = getRealPet(index);
 
-              const imageTransform: ImageStyle["transform"] = [
-                { translateX: item.offsetX ?? 0 },
-                { translateY: item.offsetY ?? 0 },
-                { 
-                  scale: isSelected
-                    ? (item.scale ?? 1)
-                    : (item.scale ?? 1) * 0.7 // 미선택 펫 카드 크기 약간 축소
-                },
+              const inputRange = [
+                (index - 1) * SNAP_SIZE,
+                index * SNAP_SIZE,
+                (index + 1) * SNAP_SIZE,
               ];
+
+              const scale = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.82, realPet.scale ?? 1, 0.82],
+                extrapolate: "clamp",
+              });
+
+              const opacity = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.5, 1, 0.5],
+                extrapolate: "clamp",
+              });
 
               return (
                 <Pressable
                   onPress={() => handlePetPress(index)}
                   style={styles.petItem}
                 >
-                  <View style={styles.imageBox}>
-                    <Image
-                      source={item.image}
+                  <Animated.View style={[styles.imageBox]}>
+                    <Animated.Image
+                      source={realPet.image}
                       style={[
                         styles.petImage,
-                        { transform: imageTransform },
-                        !isSelected && styles.petImageDimmed,
+                        {
+                          opacity,
+                          transform: [
+                            { translateX: realPet.offsetX ?? 0 },
+                            { translateY: realPet.offsetY ?? 0 },
+                            { scale },
+                          ],
+                        },
                       ]}
                     />
-                  </View>
+                  </Animated.View>
                 </Pressable>
               );
             }}
+          />
+
+          <View
+            pointerEvents="none"
+            style={[
+              styles.centerFrameBorder,
+              confirmedPet && styles.centerFrameBorderConfirmed,
+            ]}
           />
         </View>
 
         {!confirmedPet && (
           <View style={styles.descriptionWrapper}>
             <Text style={styles.description}>
-              당신의 반려 동물을{" "}
-              <Text style={styles.descriptionBold}>터치</Text>
+              당신의 반려 동물을 <Text style={styles.descriptionBold}>터치</Text>
               해주세요.
             </Text>
           </View>
@@ -205,13 +281,15 @@ export default function PetSelectionScreen() {
               "{confirmedPet.name}"로 결정하시겠습니까?
             </Text>
 
-            <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-              <Text style={styles.confirmButtonText}>네</Text>
-            </Pressable>
+            <View style={styles.confirmButtonRow}>
+              <Pressable onPress={handleReset} style={styles.iconButton}>
+                  <CancelButtonIcon width={60} height={60} />
+              </Pressable>
 
-            <Pressable style={styles.retryButton} onPress={handleReset}>
-              <Text style={styles.retryButtonText}>아니요</Text>
-            </Pressable>
+              <Pressable onPress={handleConfirm} style={styles.iconButton}>
+                  <ConfirmButtonIcon width={43} height={43} />
+              </Pressable>
+            </View>
           </View>
         )}
       </View>
@@ -245,35 +323,36 @@ const styles = StyleSheet.create({
 
   listFullWidth: {
     width: "100%",
-    zIndex: 1,
+    height: FRAME_HEIGHT + SHADOW_PADDING * 2,
+    position: "relative",
+    marginTop: -SHADOW_PADDING,
   },
 
-  centerFrame: {
+  centerFrameShadow: {
     position: "absolute",
-    top: 0,
+    top: SHADOW_PADDING,
     left: "50%",
-    marginLeft: -FRAME_WIDTH / 2,
     width: FRAME_WIDTH,
     height: FRAME_HEIGHT,
-    borderWidth: 1,
-    borderColor: "#BFBFBF",
+    marginLeft: -FRAME_WIDTH / 2,
     borderRadius: 5,
-    zIndex: 0,
     backgroundColor: "#FFFFFF",
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1.5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+    zIndex: 0,
   },
 
-  centerFrameConfirmed: {
-    borderColor: "#29F117",
-    borderWidth: 1,
+  petList: {
+    zIndex: 5,
+    elevation: 8,
   },
 
   petListContent: {
     alignItems: "center",
+    paddingVertical: SHADOW_PADDING,
   },
 
   separator: {
@@ -301,12 +380,27 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
 
-  petImageDimmed: {
-    opacity: 0.45,
+  centerFrameBorder: {
+    position: "absolute",
+    top: SHADOW_PADDING,
+    left: "50%",
+    width: FRAME_WIDTH,
+    height: FRAME_HEIGHT,
+    marginLeft: -FRAME_WIDTH / 2,
+    borderRadius: 5,
+    borderWidth: 1.2,
+    borderColor: "#BFBFBF",
+    backgroundColor: "transparent",
+    zIndex: 20,
+  },
+
+  centerFrameBorderConfirmed: {
+    borderWidth: 1.5,
+    borderColor: "#FF9544",
   },
 
   descriptionWrapper: {
-    marginTop: 40,
+    marginTop: 20,
     alignItems: "center",
   },
 
@@ -331,37 +425,20 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 16,
     color: "#6F6F6F",
-    marginBottom: 50,
+    marginBottom: 24,
   },
 
-  confirmButton: {
-    width: 94,
+  confirmButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
+
+  iconButton: {
+    width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#828282",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
-  },
-
-  confirmButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "400",
-  },
-
-  retryButton: {
-    width: 94,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#D0CCCC",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "400",
   },
 });

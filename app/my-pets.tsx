@@ -5,7 +5,7 @@ const myPets = [
   {
     id: 1,
     name: "토끼",
-    image: require("../assets/icons/rabbit.jpg"),
+    image: require("../assets/icons/rabbit.png"),
   },
 ];
 

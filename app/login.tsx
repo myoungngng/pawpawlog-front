@@ -23,6 +23,7 @@ const socialLoginProviders = [
 export default function LoginScreen() {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -98,6 +99,26 @@ export default function LoginScreen() {
             </View>
 
             <Pressable
+              style={styles.keepLoginRow}
+              onPress={() => setKeepLoggedIn((prev) => !prev)}
+            >
+            <View
+              style={[
+                styles.checkbox,
+                keepLoggedIn && styles.checkboxChecked,
+              ]}
+            >
+              {keepLoggedIn && (
+                <View style={styles.checkWrapper}>
+                  <View style={styles.checkLeft} />
+                  <View style={styles.checkRight} />
+                </View>
+              )}
+            </View>
+              <Text style={styles.keepLoginText}>로그인 상태 유지</Text>
+            </Pressable>
+
+            <Pressable
               style={[
                 styles.loginButton,
                 isLoginEnabled && styles.loginButtonActive,
@@ -170,7 +191,7 @@ const styles = StyleSheet.create({
 
   form: {
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 14,
   },
 
   input: {
@@ -188,6 +209,61 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
+  keepLoginRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingLeft: 2,
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.3,
+    borderColor: "#CFCFCF",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+
+  checkWrapper: {
+    width: 12,
+    height: 10,
+    position: "relative",
+  },
+
+  checkLeft: {
+    position: "absolute",
+    width: 5.5,
+    height: 2.2,
+    backgroundColor: "#9E9E9E",
+    borderRadius: 999,
+    left: 1,
+    bottom: 2,
+    transform: [{ rotate: "45deg" }],
+  },
+
+  checkRight: {
+    position: "absolute",
+    width: 9,
+    height: 2.2,
+    backgroundColor: "#9E9E9E",
+    borderRadius: 999,
+    left: 4,
+    bottom: 3.5,
+    transform: [{ rotate: "-45deg" }],
+  },
+
+  checkboxChecked: {
+    borderColor: "#C4C4C4",
+  },
+
+  keepLoginText: {
+    color: "#7A7A7A",
+    fontSize: 14,
+  },
+
   loginButton: {
     backgroundColor: "#D5D5D5",
     padding: 14,
@@ -197,7 +273,7 @@ const styles = StyleSheet.create({
   },
 
   loginButtonActive: {
-    backgroundColor: "#5e5e5e",
+    backgroundColor: "#FF9544",
   },
 
   loginText: {
@@ -214,21 +290,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 30,
+    gap: 40,
   },
 
   socialButton: {
-    width: 80,
-    height: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 1,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
 
   socialIcon: {
